@@ -4,9 +4,11 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 fun main(args: Array<String>) {
-    BatchMain(args).doBatch()
+    BatchMain(args).run()
 
 }
 
@@ -28,6 +30,8 @@ class BatchMain(args: Array<String>) {
     private var cmd: String? = null
     private var scpFrom: String? = null
     private var scpTo: String? = null
+    private var concurrent = false
+    private var concurrentNum = 1
 
     init {
         var configPropertyFile = File("config.properties")
@@ -69,41 +73,67 @@ class BatchMain(args: Array<String>) {
         pwd = properties.getProperty("pwd", "").trim()
         idRsaPath = properties.getProperty("idRsaPath", "").trim()
         timeout = properties.getProperty("timeout", "600000").trim().toLong()
+        concurrent = properties.getProperty("concurrent", "false").trim().toBoolean()
+        concurrentNum = properties.getProperty("concurrent_num")?.toInt() ?: hosts.size
+
     }
 
+    fun run() {
+        if (concurrent) {
+            doBatch()
+        } else {
+            doSingle()
+        }
+    }
+
+    fun doSingle() {
+        LOGGER.info("ssh start.")
+        val start = System.currentTimeMillis()
+        for (host in hosts) {
+            exec(host)
+        }
+        val end = System.currentTimeMillis()
+        LOGGER.info("ssh run end, using millseconds: ${end - start}")
+    }
+
+    /**
+     * batch exec
+     */
     fun doBatch() {
         LOGGER.info("batch ssh start.")
+        val threadPool = Executors.newFixedThreadPool(concurrentNum)
         val start = System.currentTimeMillis()
-        val threads = mutableListOf<Thread>()
         for (host in hosts) {
-            val t = Thread {
-                val conn =
-                    SSHConnection(host, username, port, pwd, idRsaPath, timeout)
-                conn.use {
-                    when (cmdType) {
-                        SCP_CMD -> {
-                            Objects.requireNonNull(scpFrom, "scp from path can not be null")
-                            Objects.requireNonNull(scpFrom, "scp to path can not be null")
-                            conn.scp(scpFrom!!, scpTo!!)
-                        }
-                        EXEC_CMD -> {
-                            Objects.requireNonNull(cmd, "cmd to exec can not be null")
-                            conn.exec(cmd!!)
-                        }
-                        else -> {
-                            throw IllegalArgumentException("error cmd type: $cmdType")
-                        }
-                    }
-                }
+            val runnable = Runnable {
+                exec(host)
             }
-            t.start()
-            threads.add(t)
+            threadPool.submit(runnable)
         }
-        for (thread in threads) {
-            thread.join()
+        while (threadPool.awaitTermination(timeout * concurrentNum, TimeUnit.MILLISECONDS)) {
+            threadPool.shutdown()
         }
         val end = System.currentTimeMillis()
         LOGGER.info("batch ssh run end, using millseconds: ${end - start}")
+    }
+
+    private fun exec(host: String) {
+        val conn = SSHConnection(host, username, port, pwd, idRsaPath, timeout)
+        conn.use {
+            when (cmdType) {
+                SCP_CMD -> {
+                    Objects.requireNonNull(scpFrom, "scp from path can not be null")
+                    Objects.requireNonNull(scpFrom, "scp to path can not be null")
+                    conn.scp(scpFrom!!, scpTo!!)
+                }
+                EXEC_CMD -> {
+                    Objects.requireNonNull(cmd, "cmd to exec can not be null")
+                    conn.exec(cmd!!)
+                }
+                else -> {
+                    throw IllegalArgumentException("error cmd type: $cmdType")
+                }
+            }
+        }
     }
 
 }

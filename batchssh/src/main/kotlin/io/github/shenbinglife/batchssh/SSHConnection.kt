@@ -6,18 +6,19 @@ import org.slf4j.LoggerFactory
 import java.io.Closeable
 import java.io.File
 import java.io.InputStream
+import java.lang.StringBuilder
 import java.util.*
 
 
 class SSHConnection(
-    private val host: String,
-    private val username: String,
-    port: Int,
-    pwd: String,
-    idRsaPath: String,
-    timeout: Long
+        private val host: String,
+        private val username: String,
+        port: Int,
+        pwd: String,
+        idRsaPath: String,
+        timeout: Long
 ) :
-    Closeable {
+        Closeable {
     companion object {
         val LOGGER: Logger = LoggerFactory.getLogger(SSHConnection::class.java)
 
@@ -77,7 +78,7 @@ class SSHConnection(
         if (sourceFile.isDirectory) {
             sourceFile.listFiles()?.forEach {
                 val mkdir = scpTo + "/" + sourceFile.name
-                LOGGER.info("scp ${it.canonicalPath} to $mkdir")
+                LOGGER.debug("scp ${it.canonicalPath} to $mkdir")
                 try {
                     scpChannel.cd(mkdir)
                 } catch (e: Exception) {
@@ -89,10 +90,11 @@ class SSHConnection(
         } else {
             scpChannel.put(scpFrom, scpTo, ChannelSftp.OVERWRITE);
         }
-
+        scpChannel.disconnect()
+        this.sshChannel = null
     }
 
-    fun exec(cmd: String) {
+    fun exec(cmd: String): String {
         LOGGER.info("$host exec: $cmd")
         if (sshChannel == null) {
             sshChannel = sshSession.openChannel("exec")
@@ -103,25 +105,34 @@ class SSHConnection(
         execChannel.connect()
 
         val errProcessor =
-            StreamProcessor(host, execChannel.errStream)
+                StreamProcessor(host, execChannel.errStream)
         val inProcessor =
-            StreamProcessor(host, execChannel.inputStream)
+                StreamProcessor(host, execChannel.inputStream)
         errProcessor.start()
         inProcessor.start()
         errProcessor.join()
         inProcessor.join()
         execChannel.disconnect()
+        this.sshChannel = null
+        return inProcessor.output()
     }
 
 }
 
 class StreamProcessor(private val host: String, private val stream: InputStream) : Thread() {
+    private val builder: StringBuilder = StringBuilder()
+
     override fun run() {
         super.run()
         val reader = stream.bufferedReader(Charsets.UTF_8)
         reader.lines().forEach {
-            SSHConnection.LOGGER.info("$host output: $it")
+            builder.appendln(it)
+            SSHConnection.LOGGER.debug("$host output: $it")
         }
+    }
+
+    fun output(): String {
+        return builder.toString()
     }
 
 }
