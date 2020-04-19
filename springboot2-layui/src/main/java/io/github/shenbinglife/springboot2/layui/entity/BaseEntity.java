@@ -1,11 +1,15 @@
 package io.github.shenbinglife.springboot2.layui.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
 import java.util.Date;
 
 @MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
 public class BaseEntity {
 
     @Id
@@ -13,11 +17,15 @@ public class BaseEntity {
     private Long id;
 
     @Column(name = "create_time")
+    @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat
+    @CreatedDate
     private Date createTime;
 
     @Column(name = "update_time")
+    @Temporal(TemporalType.TIMESTAMP)
     @JsonFormat
+    @LastModifiedDate
     private Date updateTime;
 
     public Long getId() {
