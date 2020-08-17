@@ -21,6 +21,9 @@ public class User extends BaseEntity{
     @ManyToMany(mappedBy = "users")
     private List<Org> orgs;
 
+    @ManyToMany(mappedBy = "users")
+    private List<Role> roles;
+
     public Integer getAge() {
         return age;
     }

@@ -1,4 +1,4 @@
-package io.github.shenbinglife.springboot2.layui.service;
+package io.github.shenbinglife.springboot2.layui.service.impl;
 
 import io.github.shenbinglife.springboot2.layui.dao.UserDao;
 import io.github.shenbinglife.springboot2.layui.entity.Org;
@@ -16,15 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class UserService {
-
-    @Autowired
-    private UserDao userDao;
+public class UserService extends BaseService<User, UserDao> {
 
     public Page<User> page(String name, String mobilePhone, String orgName, int pageNo, int pageSize) {
         Sort sorter = Sort.by(Sort.Direction.DESC, "updateTime");
         PageRequest pageRequest = PageRequest.of(pageNo, pageSize, sorter);
-        Page<User> pageUsers = userDao.findAll(new Specification<User>() {
+        Page<User> pageUsers = baseDao.findAll(new Specification<User>() {
             @Override
             public Predicate toPredicate(Root<User> root, CriteriaQuery<?> query, CriteriaBuilder criteriaBuilder) {
                 List<Predicate> predicates = new ArrayList<>();

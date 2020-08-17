@@ -1,6 +1,7 @@
 package io.github.shenbinglife.springboot2.layui.config;
 
 import com.github.jsonzou.jmockdata.JMockData;
+import com.github.jsonzou.jmockdata.MockConfig;
 import io.github.shenbinglife.springboot2.layui.dao.OrgDao;
 import io.github.shenbinglife.springboot2.layui.dao.UserDao;
 import io.github.shenbinglife.springboot2.layui.entity.Org;
@@ -12,6 +13,10 @@ import org.springframework.context.event.EventListener;
 
 @Configuration
 public class JMockConfig {
+    public static MockConfig mockConfig = new MockConfig();
+    static {
+        mockConfig.globalConfig().excludes("users", "orgs");
+    }
 
     @Autowired
     private UserDao userDao;
@@ -20,16 +25,14 @@ public class JMockConfig {
     private OrgDao orgDao;
 
     @EventListener(ApplicationReadyEvent.class)
-    public void test() {
-        for (int i = 0; i < 20; i++) {
-            User user = new User();
-            user.setAccount("xxx" + i);
-            user.setAge(13);
+    public void mock() {
+        for (int i = 0; i < 5; i++) {
+            User user = JMockData.mock(User.class, mockConfig);
             userDao.save(user);
         }
 
         for (int i = 0; i < 2; i++) {
-            Org org = new Org();
+            Org org = JMockData.mock(Org.class, mockConfig);
             org.setName("org" + i);
             org.setParentId(-1L);
             orgDao.save(org);

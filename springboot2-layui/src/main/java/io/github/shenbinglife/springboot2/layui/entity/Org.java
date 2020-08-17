@@ -1,5 +1,8 @@
 package io.github.shenbinglife.springboot2.layui.entity;
 
+import io.github.shenbinglife.springboot2.layui.model.TreeNode;
+import sun.reflect.generics.tree.Tree;
+
 import javax.persistence.*;
 import java.util.List;
 
@@ -8,6 +11,7 @@ public class Org extends BaseEntity {
     @Column(name = "parent_id")
     private Long parentId;
     private String name;
+    private String type;
     private String description;
 
     @ManyToMany
@@ -32,6 +36,14 @@ public class Org extends BaseEntity {
         this.name = name;
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -46,5 +58,14 @@ public class Org extends BaseEntity {
 
     public void setUsers(List<User> users) {
         this.users = users;
+    }
+
+    public TreeNode<Long> toTreeNode(Long parentId) {
+        TreeNode<Long> tree = new TreeNode<>();
+        tree.setId(getId());
+        tree.setParentId(parentId);
+        tree.setName(name);
+        tree.addAttr("desc", description);
+        return tree;
     }
 }
