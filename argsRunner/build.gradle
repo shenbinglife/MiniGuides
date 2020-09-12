@@ -3,3 +3,14 @@ dependencies {
     compile 'ch.qos.logback:logback-classic:1.2.3'
 
 }
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'io.github.shenbinglife.argrunner.MainV2'
+    }
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}

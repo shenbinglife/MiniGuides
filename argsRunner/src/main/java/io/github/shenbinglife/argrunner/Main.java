@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Deprecated
 public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
@@ -22,7 +23,7 @@ public class Main {
                 LOGGER.warn("ignore the runner which not extends ArgsRunner: " + runner.getCanonicalName());
                 continue;
             }
-            TooType annotation = (TooType) runner.getAnnotation(TooType.class);
+            ToolType annotation = (ToolType) runner.getAnnotation(ToolType.class);
             if (annotation == null) {
                 LOGGER.warn("can not get tool type from this runner: " + runner.getCanonicalName());
                 continue;
